@@ -5,3 +5,7 @@ authors = ["bombless"]
 
 [dependencies]
 glium = "*"
+
+
+[dependencies.svg]
+path = "../svg"

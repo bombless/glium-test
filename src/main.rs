@@ -1,99 +1,85 @@
-
-#[macro_use(implement_vertex)]
+#[macro_use]
 extern crate glium;
+extern crate svg_now;
 extern crate svg;
 
-enum DrawEvent {
-    Line(Vec<Vertex>)
-}
-
-impl DrawEvent {
-    fn get_shape(self) -> Vec<Vertex> {
-        let DrawEvent::Line(line) = self;
-        line
-    }
-}
-
-impl From<svg::SvgEvent> for DrawEvent {
-    fn from(s: svg::SvgEvent) -> Self {
-        let svg::SvgEvent::Line {
-            x1, x2, y1, y2, view_box
-        } = s;
-        let width = view_box[2] - view_box[0];
-        let height = view_box[3] - view_box[1];
-        let x1_ = x1 / width * 2.0 - 1.0;
-        let x2_ = x2 / width * 2.0 - 1.0;
-        let y1_ = y1 / height * 2.0 - 1.0;
-        let y2_ = y2 / height * 2.0 - 1.0;
-
-        let x1_blur = x1_ + 0.003;
-        let x2_blur = x2_ + 0.003;
-        let y1_blur = y1_ + 0.003;
-        let y2_blur = y2_ + 0.003;
-
-        DrawEvent::Line(vec![
-             Vertex { position: [x1_ as f32, y1_ as f32] }, Vertex { position: [x1_blur as f32, y1_blur as f32] }, Vertex { position: [x2_ as f32, y2_ as f32] },
-             Vertex { position: [x2_blur as f32, y2_blur as f32] }, Vertex { position: [x2_ as f32, y2_ as f32] }, Vertex { position: [x1_ as f32, y1_ as f32] },
-        ])
-    }
-}
 
 fn main() {
-    use glium::{DisplayBuild,Surface};
-    use std::time::Duration;
-    use std::thread::sleep;
-
-    let display = glium::glutin::WindowBuilder::new()
-        .with_dimensions(1024, 768)
-        .with_title("Hello world".to_owned())
-        .build_glium()
-        .unwrap();
-
-    let mut target = display.draw();
-    target.clear_color(0.0, 0.0, 1.0, 1.0);
-
-    let line = svg::parse(r#"
+    use glium::{DisplayBuild, Surface};
+    let display = glium::glutin::WindowBuilder::new().build_glium().unwrap();
+    let svg_src = r#"
     <svg width="30" height="30" viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg">
 		<line x1="15" y1="0" x2="15" y2="30" stroke-width="2" stroke="black"/>
 	</svg>
-    "#).unwrap();
-    
+    "#;
+    let tex = svg_now::render((100, 100), svg::parse(svg_src).unwrap());
+    let image = glium::texture::RawImage2d::from_raw_rgba_reversed(tex, (100, 100));
+    let texture = glium::texture::Texture2d::new(&display, image).unwrap();
 
-    let vertex_buffer = glium::VertexBuffer::new(&display, &line.into_iter().map(DrawEvent::from).map(DrawEvent::get_shape).fold(Vec::new(), |mut acc, x| { acc.extend(x); acc})).unwrap();
+    #[derive(Copy, Clone)]
+    struct Vertex {
+        position: [f32; 2],
+        tex_coords: [f32; 2],
+    }
 
+    implement_vertex!(Vertex, position, tex_coords);
+
+    let vertex1 = Vertex { position: [-1.0, -1.0], tex_coords: [0.0, 0.0] };
+    let vertex2 = Vertex { position: [ 1.0, -1.0], tex_coords: [0.0, 1.0] };
+    let vertex3 = Vertex { position: [ 1.0,  1.0], tex_coords: [1.0, 1.0] };
+
+    let vertex4 = Vertex { position: [ 1.0,  1.0], tex_coords: [1.0, 1.0] };
+    let vertex5 = Vertex { position: [-1.0,  1.0], tex_coords: [1.0, 0.0] };
+    let vertex6 = Vertex { position: [-1.0, -1.0], tex_coords: [0.0, 0.0] };
+    let shape = vec![vertex1, vertex2, vertex3, vertex4, vertex5, vertex6];
+
+    let vertex_buffer = glium::VertexBuffer::new(&display, &shape).unwrap();
     let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
-    
+
     let vertex_shader_src = r#"
-    #version 140
+        #version 140
 
-    in vec2 position;
+        in vec2 position;
+        in vec2 tex_coords;
+        out vec2 v_tex_coords;
 
-    void main() {
-        gl_Position = vec4(position, 0.0, 1.0);
-    }
-"#;
+        void main() {
+            v_tex_coords = tex_coords;
+            gl_Position = vec4(position, 0.0, 1.0);
+        }
+    "#;
+
     let fragment_shader_src = r#"
-    #version 140
+        #version 140
 
-    out vec4 color;
+        in vec2 v_tex_coords;
+        out vec4 color;
 
-    void main() {
-        color = vec4(1.0, 0.0, 0.0, 1.0);
-    }
-"#;
+        uniform sampler2D tex;
+
+        void main() {
+            color = texture(tex, v_tex_coords);
+        }
+    "#;
+
     let program = glium::Program::from_source(&display, vertex_shader_src, fragment_shader_src, None).unwrap();
 
-    target.draw(&vertex_buffer, &indices, &program, &glium::uniforms::EmptyUniforms,
-            &Default::default()).unwrap();
+    let uniforms = uniform! { tex: &texture };
 
-    target.finish().unwrap();
+    loop {
 
-    sleep(Duration::from_secs(2))
+        let mut target = display.draw();
+        target.clear_color(0.0, 0.0, 1.0, 1.0);
+
+        target.draw(&vertex_buffer, &indices, &program, &uniforms,
+                    &Default::default()).unwrap();
+        target.finish().unwrap();
+
+        for ev in display.poll_events() {
+            match ev {
+                glium::glutin::Event::Closed => return,
+                _ => ()
+            }
+        }
+    }
 }
-
-#[derive(Copy, Clone)]
-struct Vertex {
-    position: [f32; 2],
-}
-
-implement_vertex!(Vertex, position);

@@ -1,9 +1,10 @@
 [root]
-name = "glium-test"
+name = "tex"
 version = "0.1.0"
 dependencies = [
  "glium 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "svg 0.1.0",
+ "svg-now 0.1.0",
 ]
 
 [[package]]
@@ -455,6 +456,13 @@ name = "svg"
 version = "0.1.0"
 dependencies = [
  "svgparser 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "svg-now"
+version = "0.1.0"
+dependencies = [
+ "svg 0.1.0",
 ]
 
 [[package]]

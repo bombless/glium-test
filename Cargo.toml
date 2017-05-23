@@ -1,11 +1,14 @@
 [package]
-name = "glium-test"
+name = "tex"
 version = "0.1.0"
 authors = ["bombless"]
+
 
 [dependencies]
 glium = "*"
 
+[dependencies.svg-now]
+path = "../svg-now"
 
 [dependencies.svg]
 path = "../svg"

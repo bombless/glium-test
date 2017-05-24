@@ -44,15 +44,16 @@ fn verticies(pos: usize) -> Vec<Vertex> {
 }
 
 fn position(idx: usize) -> [f32; 4] {
-    assert!(idx < 9);
+    assert!(idx < 12);
     let row = idx / 3;
     let col = idx % 3;
-    [-1.0 + 2.0 / 3.0 * row as f32, 2.0/3.0, -1.0 + 2.0 / 3.0 * col as f32, 2.0/3.0]
+    [-1.0 + 2.0 / 4.0 * row as f32, 2.0/4.0, -1.0 + 2.0 / 3.0 * col as f32, 2.0/3.0]
 }
 
 fn main() {
     use glium::{DisplayBuild, Surface};
-    let display = glium::glutin::WindowBuilder::new().build_glium().unwrap();
+    let window = glium::glutin::WindowBuilder::new().with_dimensions(400, 300);
+    let display = window.build_glium().unwrap();
 
     
     let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
@@ -132,8 +133,6 @@ fn main() {
 	        </svg>"#,
     ];
 
-    let mut first_time = true;
-
     loop {
 
         let mut target = display.draw();
@@ -143,9 +142,6 @@ fn main() {
             let shape = verticies(idx);
             let vertex_buffer = glium::VertexBuffer::new(&display, &shape).unwrap();
             let events = svg::parse(svg).unwrap();
-            if first_time {
-                println!("{:?}", events);
-            }
             
             let tex = svg_now::render((100, 100), events);
             let image = glium::texture::RawImage2d::from_raw_rgba_reversed(tex, (100, 100));
@@ -153,8 +149,6 @@ fn main() {
             let uniforms = uniform! { tex: &texture };
             target.draw(&vertex_buffer, &indices, &program, &uniforms, &Default::default()).unwrap();
         }
-
-        first_time = false;
         
         target.finish().unwrap();
 

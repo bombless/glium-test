@@ -2,6 +2,7 @@
 extern crate glium;
 extern crate svg_now;
 extern crate svg;
+extern crate glium_text;
 
 pub struct View {
     x: f32, w: f32, y: f32, h: f32
@@ -57,6 +58,12 @@ fn main() {
 
     
     let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
+
+    let font = glium_text::FontTexture::new(&display, std::fs::File::open(&std::path::Path::new("c:/Windows/Fonts/simsunb.ttf")).unwrap(), 24).unwrap();
+    println!("font ready");
+
+    let text = text::Text::new(&display, &font);
+    println!("text ready");
 
     let vertex_shader_src = r#"
         #version 140
@@ -166,6 +173,9 @@ fn main() {
             let uniforms = uniform! { tex: &texture };
             target.draw(&vertex_buffer, &indices, &program, &uniforms, &Default::default()).unwrap();
         }
+
+        text.draw(1);
+        println!("text drawed");
         
         target.finish().unwrap();
 
@@ -177,3 +187,5 @@ fn main() {
         }
     }
 }
+
+mod text;

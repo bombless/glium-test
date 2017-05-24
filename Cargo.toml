@@ -6,6 +6,7 @@ authors = ["bombless"]
 
 [dependencies]
 glium = "*"
+glium_text = "*"
 
 [dependencies.svg-now]
 path = "../svg-now"

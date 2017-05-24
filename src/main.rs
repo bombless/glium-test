@@ -131,6 +131,18 @@ fn main() {
 		        <line x1="0" y1="15" x2="30" y2="15" stroke-width="2" stroke="black"/>
 		        <line x1="15" y1="0" x2="15" y2="15" stroke-width="2" stroke="black"/>
 	        </svg>"#,
+            r#"
+            <svg width="30" height="30" viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg">
+		        <line x1="0" y1="15" x2="15" y2="15" stroke-width="2" stroke="black"/>
+		        <line x1="15" y1="0" x2="15" y2="30" stroke-width="2" stroke="black"/>
+	        </svg>"#,
+            r#"
+            <svg width="30" height="30" viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg">
+		        <line x1="15" y1="15" x2="30" y2="15" stroke-width="2" stroke="black"/>
+		        <line x1="15" y1="0" x2="15" y2="30" stroke-width="2" stroke="black"/>
+	        </svg>
+            "#,
+            ""
     ];
 
     loop {
@@ -141,10 +153,15 @@ fn main() {
         for (idx, svg) in DATA.iter().enumerate() {
             let shape = verticies(idx);
             let vertex_buffer = glium::VertexBuffer::new(&display, &shape).unwrap();
-            let events = svg::parse(svg).unwrap();
-            
-            let tex = svg_now::render((100, 100), events);
-            let image = glium::texture::RawImage2d::from_raw_rgba_reversed(tex, (100, 100));
+
+            let image = if svg.len() > 0 {
+                let events = svg::parse(svg).unwrap();            
+                let tex = svg_now::render((100, 100), events);
+                glium::texture::RawImage2d::from_raw_rgba_reversed(tex, (100, 100))
+            } else {
+                const GREY: u8 = 12 * 16 + 12;
+                glium::texture::RawImage2d::from_raw_rgba_reversed(vec![GREY, GREY, GREY, 255], (1, 1))
+            };
             let texture = glium::texture::Texture2d::new(&display, image).unwrap();
             let uniforms = uniform! { tex: &texture };
             target.draw(&vertex_buffer, &indices, &program, &uniforms, &Default::default()).unwrap();
